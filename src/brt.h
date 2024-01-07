@@ -24,9 +24,15 @@ typedef struct brt_nodes {
   int* parent;
 } brt_nodes_t;
 
+// initialization and memory allocation
 void init_brt_nodes(brt_nodes_t* nodes,
                     const morton_t* morton_codes,
                     int n_nodes);
+
+// actually build the radix tree
+void build_brt_nodes(brt_nodes_t* nodes,
+                     const morton_t* morton_codes,
+                     int n_nodes);
 
 void free_brt_nodes(brt_nodes_t* nodes);
 
@@ -48,5 +54,12 @@ void init_radix_tree(radix_tree_t* tree,
                      float max_coord);
 
 void free_radix_tree(radix_tree_t* tree);
+
+/* //////////////////////////////////////////////////////////////////////////
+ */
+
+tb_int_t log2_ceil(tb_uint32_t x);
+
+int_fast8_t delta_u32(tb_uint32_t a, tb_uint32_t b);
 
 #endif  // BRT_H

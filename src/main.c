@@ -1,26 +1,28 @@
 /* //////////////////////////////////////////////////////////////////////////////////////
  * includes
  */
+#include <assert.h>
 #include <cglm/cglm.h>
 #include <omp.h>
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
 #include "brt.h"
 #include "morton.h"
+#include "tbox/libm/ceil.h"
+#include "tbox/prefix/type.h"
 #include "tbox/tbox.h"
 
 /* //////////////////////////////////////////////////////////////////////////////////////
  * Step 1: Convert 3D point to morton code (32-bit)
  */
 
-morton_t single_point_to_code_v2(tb_float_t x,
-                                 tb_float_t y,
-                                 tb_float_t z,
-                                 const tb_float_t min_coord,
-                                 const tb_float_t range) {
+static morton_t single_point_to_code_v2(tb_float_t x,
+                                        tb_float_t y,
+                                        tb_float_t z,
+                                        const tb_float_t min_coord,
+                                        const tb_float_t range) {
   x = (x - min_coord) / range;
   y = (y - min_coord) / range;
   z = (z - min_coord) / range;
@@ -29,6 +31,7 @@ morton_t single_point_to_code_v2(tb_float_t x,
       (coord_t)(x * 1024), (coord_t)(y * 1024), (coord_t)(z * 1024));
 }
 
+// functor for uint32_t, used in qsort
 tb_int_t compare_uint32_t(const void* a, const void* b) {
   const tb_uint32_t value1 = *(const tb_uint32_t*)a;
   const tb_uint32_t value2 = *(const tb_uint32_t*)b;
@@ -38,6 +41,17 @@ tb_int_t compare_uint32_t(const void* a, const void* b) {
   return 0;
 }
 
+void convert_xyz_to_morton_code(const vec4* data,
+                                tb_uint32_t* morton_keys,
+                                const tb_size_t n,
+                                const tb_float_t min_coord,
+                                const tb_float_t range) {
+#pragma omp parallel for
+  for (tb_int_t i = 0; i < n; i++) {
+    morton_keys[i] = single_point_to_code_v2(
+        data[i][0], data[i][1], data[i][2], min_coord, range);
+  }
+}
 /* //////////////////////////////////////////////////////////////////////////////////////
  * Step 3: Remove consecutive duplicates in morton
  */
@@ -67,6 +81,7 @@ tb_size_t unique(tb_uint32_t* array, tb_ptrdiff_t first, tb_ptrdiff_t last) {
 
   return ++result;
 }
+
 
 /* //////////////////////////////////////////////////////////////////////////////////////
  * main
@@ -112,7 +127,6 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
   const tb_float_t max_coord = 1024.0f;
   const tb_float_t range = max_coord - min_coord;
 
-  // #pragma omp parallel for
   for (tb_int_t i = 0; i < n; i++) {
     data[i][0] = (tb_float_t)tb_rand() / RAND_MAX * range + min_coord;
     data[i][1] = (tb_float_t)tb_rand() / RAND_MAX * range + min_coord;
@@ -125,26 +139,28 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
     printf("data[%lu] = (%f, %f, %f)\n", i, data[i][0], data[i][1], data[i][2]);
   }
 
-#pragma omp parallel for
-  for (tb_int_t i = 0; i < n; i++) {
-    morton_keys[i] = single_point_to_code_v2(
-        data[i][0], data[i][1], data[i][2], min_coord, range);
-  }
-
-  qsort(morton_keys, n, sizeof(tb_uint32_t), compare_uint32_t);
-
-  const tb_size_t n_unique_keys = remove_consecutive_duplicates(morton_keys, n);
-  // const tb_size_t n_unique_keys = unique(morton_keys, 0, n);
-  tb_trace_i("n_unique_keys = %lu", n_unique_keys);
-  tb_trace_i("n - n_unique_keys = %lu", n - n_unique_keys);
-
-  radix_tree_t tree;
-  init_radix_tree(&tree, morton_keys, n_unique_keys, min_coord, max_coord);
+  // step 1: convert 3D points to morton code
+  //
+  convert_xyz_to_morton_code(data, morton_keys, n, min_coord, range);
 
   // peek 10 morton
   for (tb_size_t i = 0; i < 10; i++) {
     printf("morton_keys[%lu] = %u\n", i, morton_keys[i]);
   }
+
+  // step 2: sort morton code
+  //
+  qsort(morton_keys, n, sizeof(tb_uint32_t), compare_uint32_t);
+
+  // step 3: remove consecutive duplicates
+  const tb_size_t n_unique_keys = remove_consecutive_duplicates(morton_keys, n);
+
+  tb_trace_i("n_unique_keys = %lu", n_unique_keys);
+  tb_trace_i("n - n_unique_keys = %lu", n - n_unique_keys);
+
+  // step 4: build radix tree (allocate memory)
+  radix_tree_t tree;
+  init_radix_tree(&tree, morton_keys, n_unique_keys, min_coord, max_coord);
 
   free_radix_tree(&tree);
   tb_free(data);
