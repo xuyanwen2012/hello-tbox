@@ -1,8 +1,6 @@
 #ifndef OCTREE_H
 #define OCTREE_H
 
-#include <tbox/tbox.h>
-
 #include "cglm/types.h"
 #include "morton.h"
 #include "tbox/prefix/type.h"
@@ -57,9 +55,9 @@ void make_oct_nodes(oct_node_t* oct_nodes,
                     const morton_t* codes,
                     const tb_uint8_t* rt_prefixN,
                     const tb_int_t* rt_parents,
-                    const tb_float_t min_coord,
-                    const tb_float_t range,
-                    const tb_int_t N  // number of brt nodes
+                    tb_float_t min_coord,
+                    tb_float_t range,
+                    tb_int_t N  // number of brt nodes
 );
 
 #endif  // OCTREE_H

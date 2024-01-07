@@ -22,39 +22,39 @@ typedef struct brt_nodes {
 
   // Index of left child of this node
   // Right child is leftChild + 1
-  int* leftChild;
+  tb_int_t* leftChild;
 
   // Index of parent
-  int* parent;
+  tb_int_t* parent;
 } brt_nodes_t;
 
 // initialization and memory allocation
 void init_brt_nodes(brt_nodes_t* nodes,
                     const morton_t* morton_codes,
-                    int n_nodes);
+                    tb_int_t n_nodes);
 
-void free_brt_nodes(brt_nodes_t* nodes);
+void free_brt_nodes(const brt_nodes_t* nodes);
 
-typedef struct radix_tree {
+typedef struct {
   brt_nodes_t d_tree;  // radix tree on GPU
-  int n_pts;           // number of points (n = number of Unique morton codes)
-  int n_nodes;         // number of radix tree nodes (n - 1)
+  tb_int_t n_pts;      // number of points (n = number of Unique morton codes)
+  tb_int_t n_nodes;    // number of radix tree nodes (n - 1)
 
   // minimum and maximum coordinate in points.
   // Represents the scaling factor for the morton codes
-  float min_coord;
-  float max_coord;
+  tb_float_t min_coord;
+  tb_float_t max_coord;
 } radix_tree_t;
 
 void init_radix_tree(radix_tree_t* tree,
-                     const morton_t* sorted_mortons_keys,
-                     int n_unique_keys,
-                     float min_coord,
-                     float max_coord);
+                     const morton_t* sorted_morton_keys,
+                     tb_int_t n_unique_keys,
+                     tb_float_t min_coord,
+                     tb_float_t max_coord);
 
 void build_radix_tree(radix_tree_t* tree);
 
-void free_radix_tree(radix_tree_t* tree);
+void free_radix_tree(const radix_tree_t* tree);
 
 /* //////////////////////////////////////////////////////////////////////////
  */

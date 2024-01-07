@@ -1,7 +1,7 @@
 set_xmakever("2.3.6")
 set_warnings("all") -- , "error"
 
-set_languages("c17")
+set_languages("c99")
 add_cxflags("-Wno-error=deprecated-declarations", "-fno-strict-aliasing")
 add_mxflags("-Wno-error=deprecated-declarations", "-fno-strict-aliasing")
 

@@ -5,33 +5,32 @@ static morton_t single_point_to_code_v2(tb_float_t x,
                                         tb_float_t z,
                                         const tb_float_t min_coord,
                                         const tb_float_t range) {
-  // const uint32_t bitscale = 0xFFFFFFFFu >> (32 - (MORTON_BITS / 3));  // 1023
-
-  const tb_uint32_t bitscale = 1024;
+  const tb_float_t bit_scale = 1024.0f;
 
   x = (x - min_coord) / range;
   y = (y - min_coord) / range;
   z = (z - min_coord) / range;
 
-  return m3D_e_magicbits((coord_t)(x * bitscale),
-                         (coord_t)(y * bitscale),
-                         (coord_t)(z * bitscale));
+  return m3D_e_magicbits((coord_t)(x * bit_scale),
+                         (coord_t)(y * bit_scale),
+                         (coord_t)(z * bit_scale));
 }
 
 void morton32_to_xyz(vec4* ret,
                      const morton_t code,
-                     const float min_coord,
-                     const float range) {
-  // const uint32_t bitscale = 0xFFFFFFFFu >> (32 - (MORTON_BITS / 3));  // 1023
-  const tb_uint32_t bitscale = 1024;
+                     const tb_float_t min_coord,
+                     const tb_float_t range) {
+  const tb_float_t bit_scale = 1024.0f;
 
   coord_t dec_raw_x[3];
-  // libmorton::morton3D_64_decode(code, dec_raw_x, dec_raw_y, dec_raw_z);
   m3D_d_magicbits(code, dec_raw_x);
 
-  float dec_x = ((float)dec_raw_x[0] / bitscale) * range + min_coord;
-  float dec_y = ((float)dec_raw_x[1] / bitscale) * range + min_coord;
-  float dec_z = ((float)dec_raw_x[2] / bitscale) * range + min_coord;
+  const tb_float_t dec_x =
+      ((tb_float_t)dec_raw_x[0] / bit_scale) * range + min_coord;
+  const tb_float_t dec_y =
+      ((tb_float_t)dec_raw_x[1] / bit_scale) * range + min_coord;
+  const tb_float_t dec_z =
+      ((tb_float_t)dec_raw_x[2] / bit_scale) * range + min_coord;
 
   // vec4 result = {dec_x, dec_y, dec_z, 1.0f};
   // glm_vec4_copy(result, *ret);

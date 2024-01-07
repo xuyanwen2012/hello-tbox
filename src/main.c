@@ -1,94 +1,23 @@
 /* //////////////////////////////////////////////////////////////////////////////////////
  * includes
  */
-#include <assert.h>
 #include <cglm/cglm.h>
 #include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 
 #include "cglm/types.h"
-#include "cglm/vec4.h"
 #include "morton.h"
 #include "octree.h"
 #include "radix_tree.h"
 #include "tbox/prefix/type.h"
 #include "tbox/tbox.h"
 
-// /*
-// //////////////////////////////////////////////////////////////////////////////////////
-//  * Step 1: Convert 3D point to morton code (32-bit)
-//  */
-
-// static morton_t single_point_to_code_v2(tb_float_t x,
-//                                         tb_float_t y,
-//                                         tb_float_t z,
-//                                         const tb_float_t min_coord,
-//                                         const tb_float_t range) {
-//   // const uint32_t bitscale = 0xFFFFFFFFu >> (32 - (MORTON_BITS / 3));  //
-//   1023
-
-//   const uint32_t bitscale = 1024;
-
-//   x = (x - min_coord) / range;
-//   y = (y - min_coord) / range;
-//   z = (z - min_coord) / range;
-
-//   return m3D_e_magicbits((coord_t)(x * bitscale),
-//                          (coord_t)(y * bitscale),
-//                          (coord_t)(z * bitscale));
-// }
-
-// static void morton32_to_xyz(vec4* ret,
-//                             const morton_t code,
-//                             const float min_coord,
-//                             const float range) {
-//   // const uint32_t bitscale = 0xFFFFFFFFu >> (32 - (MORTON_BITS / 3));  //
-//   1023 const uint32_t bitscale = 1024;
-
-//   coord_t dec_raw_x[3];
-//   // libmorton::morton3D_64_decode(code, dec_raw_x, dec_raw_y, dec_raw_z);
-//   m3D_d_magicbits(code, dec_raw_x);
-
-//   float dec_x = ((float)dec_raw_x[0] / bitscale) * range + min_coord;
-//   float dec_y = ((float)dec_raw_x[1] / bitscale) * range + min_coord;
-//   float dec_z = ((float)dec_raw_x[2] / bitscale) * range + min_coord;
-
-//   // vec4 result = {dec_x, dec_y, dec_z, 1.0f};
-//   // glm_vec4_copy(result, *ret);
-//   (*ret)[0] = dec_x;
-//   (*ret)[1] = dec_y;
-//   (*ret)[2] = dec_z;
-//   (*ret)[3] = 1.0f;
-// }
-
-// // functor for uint32_t, used in qsort
-// tb_int_t compare_uint32_t(const void* a, const void* b) {
-//   const tb_uint32_t value1 = *(const tb_uint32_t*)a;
-//   const tb_uint32_t value2 = *(const tb_uint32_t*)b;
-
-//   if (value1 < value2) return -1;
-//   if (value1 > value2) return 1;
-//   return 0;
-// }
-
-// void convert_xyz_to_morton_code(const vec4* data,
-//                                 tb_uint32_t* morton_keys,
-//                                 const tb_size_t n,
-//                                 const tb_float_t min_coord,
-//                                 const tb_float_t range) {
-// #pragma omp parallel for
-//   for (tb_int_t i = 0; i < n; i++) {
-//     morton_keys[i] = single_point_to_code_v2(
-//         data[i][0], data[i][1], data[i][2], min_coord, range);
-//   }
-// }
-
 /* //////////////////////////////////////////////////////////////////////////////////////
  * Step 3: Remove consecutive duplicates in morton
  */
-tb_size_t remove_consecutive_duplicates(tb_uint32_t* array, tb_size_t size) {
+static tb_size_t remove_consecutive_duplicates(tb_uint32_t* array,
+                                               tb_size_t size) {
   if (size == 0) return 0;
 
   tb_size_t index = 0;
@@ -102,7 +31,9 @@ tb_size_t remove_consecutive_duplicates(tb_uint32_t* array, tb_size_t size) {
 }
 
 // https://en.cppreference.com/w/cpp/algorithm/unique
-tb_size_t unique(tb_uint32_t* array, tb_ptrdiff_t first, tb_ptrdiff_t last) {
+static tb_size_t unique(tb_uint32_t* array,
+                        tb_ptrdiff_t first,
+                        tb_ptrdiff_t last) {
   if (first == last) return last;
 
   tb_ptrdiff_t result = first;
@@ -115,11 +46,11 @@ tb_size_t unique(tb_uint32_t* array, tb_ptrdiff_t first, tb_ptrdiff_t last) {
   return ++result;
 }
 
-void create_radix_tree(radix_tree_t* tree,
-                       const tb_uint32_t* morton_keys,
-                       const tb_size_t n_unique_keys,
-                       const tb_float_t min_coord,
-                       const tb_float_t max_coord) {
+static void create_radix_tree(radix_tree_t* tree,
+                              const tb_uint32_t* morton_keys,
+                              const tb_size_t n_unique_keys,
+                              const tb_float_t min_coord,
+                              const tb_float_t max_coord) {
   tree->n_pts = n_unique_keys;
   tree->n_nodes = n_unique_keys - 1;
   tree->min_coord = min_coord;
@@ -128,8 +59,8 @@ void create_radix_tree(radix_tree_t* tree,
   tree->d_tree.hasLeafLeft = tb_nalloc_type(n_unique_keys, tb_bool_t);
   tree->d_tree.hasLeafRight = tb_nalloc_type(n_unique_keys, tb_bool_t);
   tree->d_tree.prefixN = tb_nalloc_type(n_unique_keys, tb_uint8_t);
-  tree->d_tree.leftChild = tb_nalloc_type(n_unique_keys, int);
-  tree->d_tree.parent = tb_nalloc_type(n_unique_keys, int);
+  tree->d_tree.leftChild = tb_nalloc_type(n_unique_keys, tb_int_t);
+  tree->d_tree.parent = tb_nalloc_type(n_unique_keys, tb_int_t);
 
   tb_assert_and_check_return(tree->d_tree.hasLeafLeft);
   tb_assert_and_check_return(tree->d_tree.hasLeafRight);
@@ -138,12 +69,27 @@ void create_radix_tree(radix_tree_t* tree,
   tb_assert_and_check_return(tree->d_tree.parent);
 }
 
-void destroy_radix_tree(radix_tree_t* tree) {
+static void destroy_radix_tree(const radix_tree_t* tree) {
   tb_free(tree->d_tree.hasLeafLeft);
   tb_free(tree->d_tree.hasLeafRight);
   tb_free(tree->d_tree.prefixN);
   tb_free(tree->d_tree.leftChild);
   tb_free(tree->d_tree.parent);
+}
+
+// https://en.cppreference.com/w/cpp/algorithm/partial_sum#Version_1
+static tb_int_t* partial_sum(const tb_int_t* data,
+                             tb_ptrdiff_t first,
+                             tb_ptrdiff_t last,
+                             tb_int_t* d_first) {
+  if (first == last) return d_first;
+  tb_int_t sum = data[first];
+  *d_first = sum;
+  while (++first != last) {
+    sum += data[first];
+    *++d_first = sum;
+  }
+  return ++d_first;
 }
 
 /* //////////////////////////////////////////////////////////////////////////////////////
@@ -184,7 +130,7 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
   tb_size_t total_memory = 0;
   total_memory += n * sizeof(vec4);
   total_memory += n * sizeof(tb_uint32_t);
-  printf("Total memory used: %f MB\n", (float)total_memory / 1024 / 1024);
+  printf("Total memory used: %f MB\n", (tb_float_t)total_memory / 1024 / 1024);
 
   const tb_float_t min_coord = 0.0f;
   const tb_float_t max_coord = 1024.0f;
@@ -229,7 +175,7 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
   build_radix_tree(tree);
 
   // peek 32 nodes
-  for (int i = 0; i < 32; ++i) {
+  for (tb_int_t i = 0; i < 32; ++i) {
     printf(
         "idx = %d, code = %u, prefixN = %d, left = %d, parent = %d, "
         "leftLeaf=%d, rightLeft=%d\n",
@@ -252,7 +198,7 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
       tree->d_tree.prefixN, tree->d_tree.parent, edge_count, tree->n_nodes);
 
   // peek 32 edges
-  for (int i = 0; i < 32; ++i) {
+  for (tb_int_t i = 0; i < 32; ++i) {
     printf("edge_count[%d] = %d\n", i, edge_count[i]);
   }
 
@@ -266,17 +212,20 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
   total_memory += tree->n_nodes * sizeof(tb_int_t);
   total_memory += tree->n_nodes * sizeof(tb_int_t);
   printf("Total memory used for temporary memory: %f MB\n",
-         (float)total_memory / 1024 / 1024);
+         (tb_float_t)total_memory / 1024 / 1024);
 
-  tb_int_t sum = 0;
-  // allocate 1 extra element for the last element
-  for (tb_int_t i = 0; i < tree->n_nodes + 1; ++i) {
-    edge_count_prefix_sum[i] = sum;
-    sum += edge_count[i];
-  }
+  // tb_int_t sum = 0;
+  // // allocate 1 extra element for the last element
+  // for (tb_int_t i = 0; i < tree->n_nodes + 1; ++i) {
+  //   edge_count_prefix_sum[i] = sum;
+  //   sum += edge_count[i];
+  // }
+
+  partial_sum(edge_count, 0, tree->n_nodes, edge_count_prefix_sum + 1);
+  edge_count_prefix_sum[0] = 0;
 
   // peek 32 prefix sum
-  for (int i = 0; i < 32; ++i) {
+  for (tb_int_t i = 0; i < 32; ++i) {
     printf("edge_count_prefix_sum[%d] = %d\n", i, edge_count_prefix_sum[i]);
   }
 
@@ -291,13 +240,13 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
   total_memory = 0;
   total_memory += num_oct_nodes * sizeof(oct_node_t);
   printf("Total memory used for octree: %f MB\n",
-         (float)total_memory / 1024 / 1024);
+         (tb_float_t)total_memory / 1024 / 1024);
 
   // step 6: make octree
 
-  float tree_range = max_coord - min_coord;
-  int root_level = tree->d_tree.prefixN[0] / 3;
-  morton_t root_prefix =
+  const tb_float_t tree_range = max_coord - min_coord;
+  const tb_int_t root_level = tree->d_tree.prefixN[0] / 3;
+  const morton_t root_prefix =
       tree->d_tree.morton_codes[0] >> (MORTON_BITS - (3 * root_level));
 
   morton32_to_xyz(&octree_nodes[0].corner,
@@ -317,7 +266,7 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
                  tree->n_nodes);
 
   // peek 32 octree nodes
-  for (int i = 0; i < 32; ++i) {
+  for (tb_int_t i = 0; i < 32; ++i) {
     printf("octree_nodes[%d].corner = (%f, %f, %f)\n",
            i,
            octree_nodes[i].corner[0],
