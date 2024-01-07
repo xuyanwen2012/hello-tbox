@@ -92,6 +92,29 @@ static tb_int_t* std_partial_sum(const tb_int_t* data,
   return ++d_first;
 }
 
+void print_bits(const uint32_t x) {
+  for (int i = 31; i >= 0; i--) {
+    uint32_t bit = (x >> i) & 1;
+    // printf("%u", bit);
+    putchar(bit ? '1' : '0');
+    if (i % 3 == 0) {
+      putchar(' ');  // Add space every 3 bits
+    }
+  }
+}
+
+tb_int_t extract_sub_index(const morton_t code, const tb_int_t level) {
+  const tb_int_t bit_position = level * 3; // 30 - 
+  return (code >> bit_position) & 0x07;  // 0b111
+}
+
+void print_octree_path(uint32_t x) {
+  for (int i = 0; i < 10; i++) {
+    tb_int_t sub_index = extract_sub_index(x, i);
+    printf("%d ", sub_index);
+  }
+}
+
 /* //////////////////////////////////////////////////////////////////////////////////////
  * main
  */
@@ -158,7 +181,11 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
 
   // peek 32 morton
   for (tb_size_t i = 0; i < 32; i++) {
-    printf("morton_keys[%lu] = %u\n", i, morton_keys[i]);
+    printf("morton_keys[%lu] =\t%u\t", i, morton_keys[i]);
+    print_bits(morton_keys[i]);
+    putchar('\t');
+    print_octree_path(morton_keys[i]);
+    putchar('\n');
   }
 
   // step 3: remove consecutive duplicates
@@ -214,13 +241,7 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
   printf("Total memory used for temporary memory: %f MB\n",
          (tb_float_t)total_memory / 1024 / 1024);
 
-  // tb_int_t sum = 0;
-  // // allocate 1 extra element for the last element
-  // for (tb_int_t i = 0; i < tree->n_nodes + 1; ++i) {
-  //   edge_count_prefix_sum[i] = sum;
-  //   sum += edge_count[i];
-  // }
-
+  // do prefix sum (std version)
   std_partial_sum(edge_count, 0, tree->n_nodes, edge_count_prefix_sum + 1);
   edge_count_prefix_sum[0] = 0;
 

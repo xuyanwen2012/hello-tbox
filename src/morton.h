@@ -5,7 +5,12 @@
 
 #include "cglm/types.h"
 
-enum { MORTON_BITS = 31 };
+// Thus the maximum depth of the octree is 10 for 32-bit morton code.
+// for 32-bit morton, each 3-bit is used to encode one coordinate.
+// we can only use 10 chunk of 3-bits, so 2 bits are wasted.
+// for 64-bit morton,
+// we can use 21 chunk of 3-bits, so 63. 1 bit is wasted.
+enum { MORTON_BITS = 30 };
 
 typedef tb_uint32_t morton_t;
 typedef tb_uint16_t coord_t;

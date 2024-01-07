@@ -38,10 +38,10 @@ void count_edges(const tb_uint8_t* prefixN,
   }
 }
 
-tb_int_t extract_sub_index(const morton_t code, const tb_int_t level) {
-  const tb_int_t bit_position = level * 3;
-  return (code >> bit_position) & 0x07;  // 0b111
-}
+// tb_int_t extract_sub_index(const morton_t code, const tb_int_t level) {
+//   const tb_int_t bit_position = level * 3;
+//   return (code >> bit_position) & 0x07;  // 0b111
+// }
 
 void make_oct_nodes(oct_node_t* oct_nodes,
                     const tb_int_t* node_offsets,    // prefix sum
@@ -56,8 +56,31 @@ void make_oct_nodes(oct_node_t* oct_nodes,
   const tb_int_t root_level = rt_prefixN[0] / 3;
 
   // the root doesn't represent level 0 of the "entire" octree
-  for (tb_int_t i = 1; i < 1024; ++i) {
+  for (tb_int_t i = 1; i < N; ++i) {
     tb_trace_i("i: %d", i);
+
+    // tb_int_t error_array[11] = {77118,
+    //                             77119,
+    //                             230604,
+    //                             230605,
+    //                             307134,
+    //                             307135,
+    //                             307137,
+    //                             307138,
+    //                             307139,
+    //                             307143,
+    //                             307144};
+    // // skip all i in error_array
+    // tb_int_t error = 0;
+    // for (tb_int_t j = 0; j < 11; ++j) {
+    //   if (i == error_array[j]) {
+    //     error = 1;
+    //     break;
+    //   }
+    // }
+    // if (error) {
+    //   continue;
+    // }
 
     tb_int_t oct_idx = node_offsets[i];
     const tb_int_t n_new_nodes = rt_node_counts[i];
@@ -85,8 +108,26 @@ void make_oct_nodes(oct_node_t* oct_nodes,
 
     if (n_new_nodes > 0) {
       tb_int_t rt_parent = rt_parents[i];
+
+      if (i == 77118) {
+        // print all information of this node
+        printf("i: %d\n", i);
+        printf("rt_prefixN[i]: %d\n", rt_prefixN[i]);
+        printf("rt_node_counts[i]: %d\n", rt_node_counts[i]);
+        printf("rt_parents[i]: %d\n", rt_parents[i]);
+        printf("node_offsets[i]: %d\n", node_offsets[i]);
+        printf("codes[i]: %d\n", codes[i]);
+        printf("oct_idx: %d\n", oct_idx);
+        // print rt_node_counts[rt_parent]
+        printf("rt_node_counts[rt_parent]: %d\n", rt_node_counts[rt_parent]);
+      }
+
       while (rt_node_counts[rt_parent] == 0) {
         rt_parent = rt_parents[rt_parent];
+      }
+
+      if (i == 77118) {
+        printf("-------------------: %d\n", rt_parent);
       }
 
       const tb_int_t oct_parent = node_offsets[rt_parent];
