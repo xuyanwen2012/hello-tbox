@@ -8,49 +8,83 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "cglm/types.h"
+#include "cglm/vec4.h"
 #include "morton.h"
 #include "octree.h"
 #include "radix_tree.h"
+#include "tbox/prefix/type.h"
 #include "tbox/tbox.h"
 
-/* //////////////////////////////////////////////////////////////////////////////////////
- * Step 1: Convert 3D point to morton code (32-bit)
- */
+// /*
+// //////////////////////////////////////////////////////////////////////////////////////
+//  * Step 1: Convert 3D point to morton code (32-bit)
+//  */
 
-static morton_t single_point_to_code_v2(tb_float_t x,
-                                        tb_float_t y,
-                                        tb_float_t z,
-                                        const tb_float_t min_coord,
-                                        const tb_float_t range) {
-  x = (x - min_coord) / range;
-  y = (y - min_coord) / range;
-  z = (z - min_coord) / range;
+// static morton_t single_point_to_code_v2(tb_float_t x,
+//                                         tb_float_t y,
+//                                         tb_float_t z,
+//                                         const tb_float_t min_coord,
+//                                         const tb_float_t range) {
+//   // const uint32_t bitscale = 0xFFFFFFFFu >> (32 - (MORTON_BITS / 3));  //
+//   1023
 
-  return m3D_e_magicbits(
-      (coord_t)(x * 1024), (coord_t)(y * 1024), (coord_t)(z * 1024));
-}
+//   const uint32_t bitscale = 1024;
 
-// functor for uint32_t, used in qsort
-tb_int_t compare_uint32_t(const void* a, const void* b) {
-  const tb_uint32_t value1 = *(const tb_uint32_t*)a;
-  const tb_uint32_t value2 = *(const tb_uint32_t*)b;
+//   x = (x - min_coord) / range;
+//   y = (y - min_coord) / range;
+//   z = (z - min_coord) / range;
 
-  if (value1 < value2) return -1;
-  if (value1 > value2) return 1;
-  return 0;
-}
+//   return m3D_e_magicbits((coord_t)(x * bitscale),
+//                          (coord_t)(y * bitscale),
+//                          (coord_t)(z * bitscale));
+// }
 
-void convert_xyz_to_morton_code(const vec4* data,
-                                tb_uint32_t* morton_keys,
-                                const tb_size_t n,
-                                const tb_float_t min_coord,
-                                const tb_float_t range) {
-#pragma omp parallel for
-  for (tb_int_t i = 0; i < n; i++) {
-    morton_keys[i] = single_point_to_code_v2(
-        data[i][0], data[i][1], data[i][2], min_coord, range);
-  }
-}
+// static void morton32_to_xyz(vec4* ret,
+//                             const morton_t code,
+//                             const float min_coord,
+//                             const float range) {
+//   // const uint32_t bitscale = 0xFFFFFFFFu >> (32 - (MORTON_BITS / 3));  //
+//   1023 const uint32_t bitscale = 1024;
+
+//   coord_t dec_raw_x[3];
+//   // libmorton::morton3D_64_decode(code, dec_raw_x, dec_raw_y, dec_raw_z);
+//   m3D_d_magicbits(code, dec_raw_x);
+
+//   float dec_x = ((float)dec_raw_x[0] / bitscale) * range + min_coord;
+//   float dec_y = ((float)dec_raw_x[1] / bitscale) * range + min_coord;
+//   float dec_z = ((float)dec_raw_x[2] / bitscale) * range + min_coord;
+
+//   // vec4 result = {dec_x, dec_y, dec_z, 1.0f};
+//   // glm_vec4_copy(result, *ret);
+//   (*ret)[0] = dec_x;
+//   (*ret)[1] = dec_y;
+//   (*ret)[2] = dec_z;
+//   (*ret)[3] = 1.0f;
+// }
+
+// // functor for uint32_t, used in qsort
+// tb_int_t compare_uint32_t(const void* a, const void* b) {
+//   const tb_uint32_t value1 = *(const tb_uint32_t*)a;
+//   const tb_uint32_t value2 = *(const tb_uint32_t*)b;
+
+//   if (value1 < value2) return -1;
+//   if (value1 > value2) return 1;
+//   return 0;
+// }
+
+// void convert_xyz_to_morton_code(const vec4* data,
+//                                 tb_uint32_t* morton_keys,
+//                                 const tb_size_t n,
+//                                 const tb_float_t min_coord,
+//                                 const tb_float_t range) {
+// #pragma omp parallel for
+//   for (tb_int_t i = 0; i < n; i++) {
+//     morton_keys[i] = single_point_to_code_v2(
+//         data[i][0], data[i][1], data[i][2], min_coord, range);
+//   }
+// }
+
 /* //////////////////////////////////////////////////////////////////////////////////////
  * Step 3: Remove consecutive duplicates in morton
  */
@@ -119,7 +153,7 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
   if (!tb_init(tb_null, tb_null)) return -1;
 
   // read n from command line
-  tb_int_t n = 1024 * 1024;
+  tb_int_t n = 640 * 480;
   if (argc > 1) {
     n = tb_atoi(argv[1]);
   }
@@ -213,7 +247,7 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
   tb_int_t* edge_count = tb_nalloc_type(tree->n_nodes, tb_int_t);
   tb_assert_and_check_return_val(edge_count, EXIT_FAILURE);
 
-  // count edges
+  // step 5: count edges
   count_edges(
       tree->d_tree.prefixN, tree->d_tree.parent, edge_count, tree->n_nodes);
 
@@ -222,7 +256,7 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
     printf("edge_count[%d] = %d\n", i, edge_count[i]);
   }
 
-  // compute the prefix sum
+  // step 5.5: compute the prefix sum
   // allocate 1 extra element for the last element
   tb_int_t* edge_count_prefix_sum = tb_nalloc_type(tree->n_nodes + 1, tb_int_t);
   tb_assert_and_check_return_val(edge_count_prefix_sum, EXIT_FAILURE);
@@ -246,6 +280,32 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
     printf("edge_count_prefix_sum[%d] = %d\n", i, edge_count_prefix_sum[i]);
   }
 
+  const tb_int_t num_oct_nodes = edge_count_prefix_sum[tree->n_nodes];
+  tb_trace_i("num_oct_nodes = %d", num_oct_nodes);
+
+  // allocate memory for octree
+  oct_node_t* octree_nodes = tb_nalloc_type(num_oct_nodes, oct_node_t);
+  tb_assert_and_check_return_val(octree_nodes, EXIT_FAILURE);
+
+  // print how much memory is used
+  total_memory = 0;
+  total_memory += num_oct_nodes * sizeof(oct_node_t);
+  printf("Total memory used for octree: %f MB\n",
+         (float)total_memory / 1024 / 1024);
+
+  // step 6: make octree
+
+  float tree_range = max_coord - min_coord;
+  int root_level = tree->d_tree.prefixN[0] / 3;
+  morton_t root_prefix =
+      tree->d_tree.morton_codes[0] >> (MORTON_BITS - (3 * root_level));
+
+  morton32_to_xyz(&octree_nodes[0].corner,
+                  root_prefix << (MORTON_BITS - (3 * root_level)),
+                  min_coord,
+                  tree_range);
+  octree_nodes[0].cell_size = tree_range;
+
   // free temporary memory
   tb_free(edge_count);
   tb_free(edge_count_prefix_sum);
@@ -255,6 +315,14 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
   tb_free(tree);
   tb_free(data);
   tb_free(morton_keys);
+
+  // morton_t test_code =
+  //     single_point_to_code_v2(12.0f, 34.0f, 56.0f, min_coord, tree_range);
+  // printf("test_code = %u\n", test_code);
+
+  // vec4 result;
+  // morton32_to_xyz(&result, test_code, min_coord, tree_range);
+  // printf("result = (%f, %f, %f)\n", result[0], result[1], result[2]);
 
   tb_exit();
   return EXIT_SUCCESS;

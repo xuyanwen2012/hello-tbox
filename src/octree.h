@@ -4,7 +4,12 @@
 #include <tbox/tbox.h>
 
 #include "cglm/types.h"
+#include "morton.h"
 #include "tbox/prefix/type.h"
+
+/* //////////////////////////////////////////////////////////////////////////
+ * Types
+ */
 
 typedef struct {
   // TODO: This is overkill number of pointers
@@ -43,9 +48,18 @@ void set_leaf(oct_node_t* node, tb_int_t leaf, tb_int_t my_child_idx);
 
 void count_edges(const tb_uint8_t* prefixN,
                  const tb_int_t* parents,
-                 tb_int_t* rt_edge_counts,
+                 tb_int_t* edge_count,
                  tb_int_t n_brt_nodes);
 
-
+void make_oct_nodes(oct_node_t* oct_nodes,
+                    const tb_int_t* node_offsets,    // prefix sum
+                    const tb_int_t* rt_node_counts,  // edge count
+                    const morton_t* codes,
+                    const tb_uint8_t* rt_prefixN,
+                    const tb_int_t* rt_parents,
+                    const tb_float_t min_coord,
+                    const tb_float_t range,
+                    const tb_int_t N  // number of brt nodes
+);
 
 #endif  // OCTREE_H

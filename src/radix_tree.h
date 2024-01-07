@@ -5,6 +5,10 @@
 
 #include "morton.h"
 
+/* //////////////////////////////////////////////////////////////////////////
+ * Types
+ */
+
 typedef struct brt_nodes {
   const morton_t* morton_codes;
 
@@ -14,7 +18,7 @@ typedef struct brt_nodes {
 
   // The number of bits in the mortonCode this node represents
   // Corresponds to delta_node in [Karras]
-  uint8_t* prefixN;
+  tb_uint8_t* prefixN;
 
   // Index of left child of this node
   // Right child is leftChild + 1
@@ -57,6 +61,6 @@ void free_radix_tree(radix_tree_t* tree);
 
 tb_int_t log2_ceil_u32(tb_uint32_t x);
 
-int_fast8_t delta_u32(tb_uint32_t a, tb_uint32_t b);
+tb_uint8_t delta_u32(tb_uint32_t a, tb_uint32_t b);
 
 #endif  // RADIX_TREE_H

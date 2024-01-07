@@ -64,12 +64,12 @@ void free_radix_tree(radix_tree_t* tree) { free_brt_nodes(&tree->d_tree); }
  * radix tree construction
  */
 
-uint32_t ceil_div_u32(uint32_t a, uint32_t b) {
+tb_uint32_t ceil_div_u32(tb_uint32_t a, tb_uint32_t b) {
   tb_assert(b != 0);
   return (a + b - 1) / b;
 }
 
-int_fast8_t delta_u32(tb_uint32_t a, tb_uint32_t b) {
+tb_uint8_t delta_u32(tb_uint32_t a, tb_uint32_t b) {
   const tb_uint32_t bit1_mask = ((tb_uint32_t)1) << (sizeof(a) * 8 - 1);
   tb_assert((a & bit1_mask) == 0);
   tb_assert((b & bit1_mask) == 0);
@@ -107,8 +107,8 @@ void build_radix_tree(radix_tree_t* tree) {
     if (i == 0) {
       d = 1;
     } else {
-      const int_fast8_t delta_diff_right = delta_u32(code_i, codes[i + 1]);
-      const int_fast8_t delta_diff_left = delta_u32(code_i, codes[i - 1]);
+      const tb_uint8_t delta_diff_right = delta_u32(code_i, codes[i + 1]);
+      const tb_uint8_t delta_diff_left = delta_u32(code_i, codes[i - 1]);
       const int direction_difference = delta_diff_right - delta_diff_left;
       d = (direction_difference > 0) - (direction_difference < 0);
     }
@@ -120,7 +120,7 @@ void build_radix_tree(radix_tree_t* tree) {
       // First node is root, covering whole tree
       l = n - 1;
     } else {
-      const int_fast8_t delta_min = delta_u32(code_i, codes[i - d]);
+      const tb_uint8_t delta_min = delta_u32(code_i, codes[i - d]);
       morton_t l_max = 2;
       // Cast to ptrdiff_t so in case the result is negative (since d is +/- 1),
       // we can catch it and not index out of bounds
@@ -144,7 +144,7 @@ void build_radix_tree(radix_tree_t* tree) {
     int j = i + l * d;
 
     // Find the split position using binary search
-    const int_fast8_t delta_node = delta_u32(codes[i], codes[j]);
+    const tb_uint8_t delta_node = delta_u32(codes[i], codes[j]);
     prefix_n[i] = delta_node;
     int s = 0;
     const int max_divisor = 1 << log2_ceil_u32(l);
