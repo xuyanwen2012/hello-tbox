@@ -23,24 +23,19 @@ morton single_point_to_code_v2(tb_float_t x,
       (coord)(x * 1024), (coord)(y * 1024), (coord)(z * 1024));
 }
 
-static void functionToMeasure() {}
-
 tb_int_t compare_uint32_t(const void* a, const void* b) {
-  tb_uint32_t value1 = *((const tb_uint32_t*)a);
-  tb_uint32_t value2 = *((const tb_uint32_t*)b);
+  const tb_uint32_t value1 = *(const tb_uint32_t*)a;
+  const tb_uint32_t value2 = *(const tb_uint32_t*)b;
 
-  if (value1 < value2)
-    return -1;
-  else if (value1 > value2)
-    return 1;
-  else
-    return 0;
+  if (value1 < value2) return -1;
+  if (value1 > value2) return 1;
+  return 0;
 }
 
 /* //////////////////////////////////////////////////////////////////////////////////////
  * main
  */
-tb_int_t main(tb_int_t argc, tb_char_t** argv) {
+tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
   if (!tb_init(tb_null, tb_null)) return -1;
 
   // read n from command line
@@ -52,13 +47,13 @@ tb_int_t main(tb_int_t argc, tb_char_t** argv) {
 
   tb_int_t num_threads = 16;
   if (argc > 2) {
-    num_threads = atoi(argv[2]);
+    num_threads = tb_atoi(argv[2]);
   }
-  printf("nthreads = %d\n", num_threads);
+  printf("num_threads = %d\n", num_threads);
 
   omp_set_num_threads(num_threads);
 
-  srand(114514);
+  tb_srand(114514);
 
   // allocate n vec4 elements
   vec4* data = tb_nalloc_type(n, vec4);
@@ -70,15 +65,16 @@ tb_int_t main(tb_int_t argc, tb_char_t** argv) {
 
   // #pragma omp parallel for
   for (tb_int_t i = 0; i < n; i++) {
-    data[i][0] = (float)rand() / RAND_MAX * range + min_coord;
-    data[i][1] = (float)rand() / RAND_MAX * range + min_coord;
-    data[i][2] = (float)rand() / RAND_MAX * range + min_coord;
+    data[i][0] = (float)tb_rand() / RAND_MAX * range + min_coord;
+    data[i][1] = (float)tb_rand() / RAND_MAX * range + min_coord;
+    data[i][2] = (float)tb_rand() / RAND_MAX * range + min_coord;
     data[i][3] = 1.0f;
   }
 
   // peek 10 points
   for (tb_size_t i = 0; i < 10; i++) {
-    printf("data[%lu] = (%f, %f, %f)\n", i, data[i][0], data[i][1], data[i][2]);
+    printf(
+        "data[%llu] = (%f, %f, %f)\n", i, data[i][0], data[i][1], data[i][2]);
   }
 
   // allocate n morton code
@@ -95,7 +91,7 @@ tb_int_t main(tb_int_t argc, tb_char_t** argv) {
 
   // peek 10 morton
   for (tb_size_t i = 0; i < 10; i++) {
-    printf("morton_keys[%lu] = %u\n", i, morton_keys[i]);
+    printf("morton_keys[%llu] = %u\n", i, morton_keys[i]);
   }
 
   tb_free(data);
