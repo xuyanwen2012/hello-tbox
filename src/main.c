@@ -68,22 +68,25 @@ tb_int_t main(tb_int_t argc, tb_char_t** argv) {
   const float max_coord = 1024.0f;
   const float range = max_coord - min_coord;
 
-#pragma omp parallel for
-  for (tb_size_t i = 0; i < n; i++) {
+  // #pragma omp parallel for
+  for (tb_int_t i = 0; i < n; i++) {
     data[i][0] = (float)rand() / RAND_MAX * range + min_coord;
     data[i][1] = (float)rand() / RAND_MAX * range + min_coord;
     data[i][2] = (float)rand() / RAND_MAX * range + min_coord;
     data[i][3] = 1.0f;
   }
 
+  // peek 10 points
+  for (tb_size_t i = 0; i < 10; i++) {
+    printf("data[%lu] = (%f, %f, %f)\n", i, data[i][0], data[i][1], data[i][2]);
+  }
+
   // allocate n morton code
   tb_uint32_t* morton_keys = tb_nalloc_type(n, tb_uint32_t);
   tb_assert_and_check_return_val(morton_keys, EXIT_FAILURE);
 
-  // benchmark the time it takes to convert n points to morton code
-
 #pragma omp parallel for
-  for (tb_size_t i = 0; i < n; i++) {
+  for (tb_int_t i = 0; i < n; i++) {
     morton_keys[i] = single_point_to_code_v2(
         data[i][0], data[i][1], data[i][2], min_coord, range);
   }
