@@ -87,6 +87,37 @@ tb_size_t unique(tb_uint32_t* array, tb_ptrdiff_t first, tb_ptrdiff_t last) {
   tb_large_allocator_init((tb_byte_t*)malloc(500 * 1024 * 1024), \
                           500 * 1024 * 1024)
 
+void create_radix_tree(radix_tree_t* tree,
+                       const tb_uint32_t* morton_keys,
+                       const tb_size_t n_unique_keys,
+                       const tb_float_t min_coord,
+                       const tb_float_t max_coord) {
+  tree->n_pts = n_unique_keys;
+  tree->n_nodes = n_unique_keys - 1;
+  tree->min_coord = min_coord;
+  tree->max_coord = max_coord;
+  tree->d_tree.morton_codes = morton_keys;
+  tree->d_tree.hasLeafLeft = tb_nalloc_type(n_unique_keys, tb_bool_t);
+  tree->d_tree.hasLeafRight = tb_nalloc_type(n_unique_keys, tb_bool_t);
+  tree->d_tree.prefixN = tb_nalloc_type(n_unique_keys, tb_uint8_t);
+  tree->d_tree.leftChild = tb_nalloc_type(n_unique_keys, int);
+  tree->d_tree.parent = tb_nalloc_type(n_unique_keys, int);
+
+  tb_assert_and_check_return(tree->d_tree.hasLeafLeft);
+  tb_assert_and_check_return(tree->d_tree.hasLeafRight);
+  tb_assert_and_check_return(tree->d_tree.prefixN);
+  tb_assert_and_check_return(tree->d_tree.leftChild);
+  tb_assert_and_check_return(tree->d_tree.parent);
+}
+
+void destroy_radix_tree(radix_tree_t* tree) {
+  tb_free(tree->d_tree.hasLeafLeft);
+  tb_free(tree->d_tree.hasLeafRight);
+  tb_free(tree->d_tree.prefixN);
+  tb_free(tree->d_tree.leftChild);
+  tb_free(tree->d_tree.parent);
+}
+
 /* //////////////////////////////////////////////////////////////////////////////////////
  * main
  */
@@ -167,21 +198,14 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
   tb_trace_i("n - n_unique_keys = %lu", n - n_unique_keys);
 
   // step 4: build radix tree (allocate memory)
-  radix_tree_t tree;
-  tree.n_pts = n_unique_keys;
-  tree.n_nodes = n_unique_keys - 1;
-  tree.min_coord = min_coord;
-  tree.max_coord = max_coord;
-  tree.d_tree.morton_codes = morton_keys;
-  tree.d_tree.hasLeafLeft = tb_nalloc_type(n_unique_keys, tb_bool_t);
-  tree.d_tree.hasLeafRight = tb_nalloc_type(n_unique_keys, tb_bool_t);
-  tree.d_tree.prefixN = tb_nalloc_type(n_unique_keys, tb_uint8_t);
-  tree.d_tree.leftChild = tb_nalloc_type(n_unique_keys, int);
-  tree.d_tree.parent = tb_nalloc_type(n_unique_keys, int);
+  radix_tree_t* tree = tb_nalloc_type(1, radix_tree_t);
+  tb_assert_and_check_return_val(tree, EXIT_FAILURE);
+
+  create_radix_tree(tree, morton_keys, n_unique_keys, min_coord, max_coord);
 
   // init_radix_tree(&tree, morton_keys, n_unique_keys, min_coord, max_coord);
 
-  build_radix_tree(&tree);
+  build_radix_tree(tree);
 
   for (int i = 0; i < 32; ++i) {
     printf(
@@ -189,20 +213,16 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
         "leftLeaf=%d, rightLeft=%d\n",
         i,
         morton_keys[i],
-        tree.d_tree.prefixN[i],
-        tree.d_tree.leftChild[i],
-        tree.d_tree.parent[i],
-        tree.d_tree.hasLeafLeft[i],
-        tree.d_tree.hasLeafRight[i]);
+        tree->d_tree.prefixN[i],
+        tree->d_tree.leftChild[i],
+        tree->d_tree.parent[i],
+        tree->d_tree.hasLeafLeft[i],
+        tree->d_tree.hasLeafRight[i]);
   }
 
   // free_radix_tree(&tree);
-  tb_free(tree.d_tree.hasLeafLeft);
-  tb_free(tree.d_tree.hasLeafRight);
-  tb_free(tree.d_tree.prefixN);
-  tb_free(tree.d_tree.leftChild);
-  tb_free(tree.d_tree.parent);
-
+  destroy_radix_tree(tree);
+  tb_free(tree);
   tb_free(data);
   tb_free(morton_keys);
 
