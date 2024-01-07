@@ -4,7 +4,6 @@
 #include <tbox/tbox.h>
 
 #include "cglm/types.h"
-
 #include "morton.h"
 
 struct Baseline {
