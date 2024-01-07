@@ -306,6 +306,25 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
                   tree_range);
   octree_nodes[0].cell_size = tree_range;
 
+  make_oct_nodes(octree_nodes,
+                 edge_count_prefix_sum,
+                 edge_count,
+                 tree->d_tree.morton_codes,
+                 tree->d_tree.prefixN,
+                 tree->d_tree.parent,
+                 min_coord,
+                 tree_range,
+                 tree->n_nodes);
+
+  // peek 32 octree nodes
+  for (int i = 0; i < 32; ++i) {
+    printf("octree_nodes[%d].corner = (%f, %f, %f)\n",
+           i,
+           octree_nodes[i].corner[0],
+           octree_nodes[i].corner[1],
+           octree_nodes[i].corner[2]);
+  }
+
   // free temporary memory
   tb_free(edge_count);
   tb_free(edge_count_prefix_sum);

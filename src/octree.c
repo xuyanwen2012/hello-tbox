@@ -44,10 +44,12 @@ void make_oct_nodes(oct_node_t* oct_nodes,
 ) {
   // the root doesn't represent level 0 of the "entire" octree
   for (int i = 1; i < N; ++i) {
+    // tb_trace_i("i: %d", i);
+
     int root_level = rt_prefixN[0] / 3;
     int oct_idx = node_offsets[i];
-    // int n_new_nodes = node_offsets[i] - node_offsets[i - 1];
     int n_new_nodes = rt_node_counts[i];
+
     for (int j = 0; j < n_new_nodes - 1; ++j) {
       int level = rt_prefixN[i] / 3 - j;
       morton_t node_prefix = codes[i] >> (MORTON_BITS - (3 * level));
@@ -57,14 +59,35 @@ void make_oct_nodes(oct_node_t* oct_nodes,
       //   oct_nodes[parent].setChild(oct_idx, child_idx);
       set_child(&oct_nodes[parent], oct_idx, child_idx);
 
-      // calculate corner point
-      //   (less significant bits have already been shifted off)
-      //   oct_nodes[oct_idx].corner = codeToPoint(
-      //   node_prefix << (CODE_LEN - (3 * level)), min_coord, range);
+      morton32_to_xyz(&oct_nodes[oct_idx].corner,
+                      node_prefix << (MORTON_BITS - (3 * level)),
+                      min_coord,
+                      range);
 
       // each cell is half the size of the level above it
       oct_nodes[oct_idx].cell_size = range / (float)(1 << (level - root_level));
       oct_idx = parent;
+    }
+
+    if (n_new_nodes > 0) {
+      int rt_parent = rt_parents[i];
+      while (rt_node_counts[rt_parent] == 0) {
+        rt_parent = rt_parents[rt_parent];
+      }
+      int oct_parent = node_offsets[rt_parent];
+      int top_level = rt_prefixN[i] / 3 - n_new_nodes + 1;
+      morton_t top_node_prefix = codes[i] >> (MORTON_BITS - (3 * top_level));
+
+      int child_idx = top_node_prefix & 0b111;
+
+      set_child(&oct_nodes[oct_parent], oct_idx, child_idx);
+
+      morton32_to_xyz(&oct_nodes[oct_idx].corner,
+                      top_node_prefix << (MORTON_BITS - (3 * top_level)),
+                      min_coord,
+                      range);
+      oct_nodes[oct_idx].cell_size =
+          range / (float)(1 << (top_level - root_level));
     }
   }
 }
