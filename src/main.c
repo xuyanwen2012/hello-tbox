@@ -11,6 +11,7 @@
 #include "brt.h"
 #include "morton.h"
 #include "tbox/libm/ceil.h"
+#include "tbox/prefix/assert.h"
 #include "tbox/prefix/type.h"
 #include "tbox/tbox.h"
 
@@ -82,12 +83,19 @@ tb_size_t unique(tb_uint32_t* array, tb_ptrdiff_t first, tb_ptrdiff_t last) {
   return ++result;
 }
 
+#define tb_demo_init_pool()                                      \
+  tb_large_allocator_init((tb_byte_t*)malloc(500 * 1024 * 1024), \
+                          500 * 1024 * 1024)
 
 /* //////////////////////////////////////////////////////////////////////////////////////
  * main
  */
 tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
   if (!tb_init(tb_null, tb_null)) return -1;
+  // if (!tb_init(tb_null,
+  //  tb_default_allocator((tb_byte_t*)malloc(300 * 1024 * 1024),
+  // 300 * 1024 * 1024)))
+  // return -1;
 
   // read n from command line
   tb_int_t n = 1024 * 1024;
@@ -160,9 +168,41 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
 
   // step 4: build radix tree (allocate memory)
   radix_tree_t tree;
-  init_radix_tree(&tree, morton_keys, n_unique_keys, min_coord, max_coord);
+  tree.n_pts = n_unique_keys;
+  tree.n_nodes = n_unique_keys - 1;
+  tree.min_coord = min_coord;
+  tree.max_coord = max_coord;
+  tree.d_tree.morton_codes = morton_keys;
+  tree.d_tree.hasLeafLeft = tb_nalloc_type(n_unique_keys, tb_bool_t);
+  tree.d_tree.hasLeafRight = tb_nalloc_type(n_unique_keys, tb_bool_t);
+  tree.d_tree.prefixN = tb_nalloc_type(n_unique_keys, tb_uint8_t);
+  tree.d_tree.leftChild = tb_nalloc_type(n_unique_keys, int);
+  tree.d_tree.parent = tb_nalloc_type(n_unique_keys, int);
 
-  free_radix_tree(&tree);
+  // init_radix_tree(&tree, morton_keys, n_unique_keys, min_coord, max_coord);
+
+  build_radix_tree(&tree);
+
+  for (int i = 0; i < 32; ++i) {
+    printf(
+        "idx = %d, code = %u, prefixN = %d, left = %d, parent = %d, "
+        "leftLeaf=%d, rightLeft=%d\n",
+        i,
+        morton_keys[i],
+        tree.d_tree.prefixN[i],
+        tree.d_tree.leftChild[i],
+        tree.d_tree.parent[i],
+        tree.d_tree.hasLeafLeft[i],
+        tree.d_tree.hasLeafRight[i]);
+  }
+
+  // free_radix_tree(&tree);
+  tb_free(tree.d_tree.hasLeafLeft);
+  tb_free(tree.d_tree.hasLeafRight);
+  tb_free(tree.d_tree.prefixN);
+  tb_free(tree.d_tree.leftChild);
+  tb_free(tree.d_tree.parent);
+
   tb_free(data);
   tb_free(morton_keys);
 
