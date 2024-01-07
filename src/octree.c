@@ -43,7 +43,7 @@ void make_oct_nodes(oct_node_t* oct_nodes,
                     const tb_int_t N  // number of brt nodes
 ) {
   // the root doesn't represent level 0 of the "entire" octree
-  for (int i = 1; i < N; ++i) {
+  for (int i = 1; i < 1024; ++i) {
     // tb_trace_i("i: %d", i);
 
     int root_level = rt_prefixN[0] / 3;
