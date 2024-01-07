@@ -1,4 +1,6 @@
-#include "brt.h"
+#include "radix_tree.h"
+
+#include <stdio.h>
 
 #include "assert.h"
 #include "morton.h"

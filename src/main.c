@@ -8,11 +8,9 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "brt.h"
 #include "morton.h"
-#include "tbox/libm/ceil.h"
-#include "tbox/prefix/assert.h"
-#include "tbox/prefix/type.h"
+#include "octree.h"
+#include "radix_tree.h"
 #include "tbox/tbox.h"
 
 /* //////////////////////////////////////////////////////////////////////////////////////
@@ -83,10 +81,6 @@ tb_size_t unique(tb_uint32_t* array, tb_ptrdiff_t first, tb_ptrdiff_t last) {
   return ++result;
 }
 
-#define tb_demo_init_pool()                                      \
-  tb_large_allocator_init((tb_byte_t*)malloc(500 * 1024 * 1024), \
-                          500 * 1024 * 1024)
-
 void create_radix_tree(radix_tree_t* tree,
                        const tb_uint32_t* morton_keys,
                        const tb_size_t n_unique_keys,
@@ -123,10 +117,6 @@ void destroy_radix_tree(radix_tree_t* tree) {
  */
 tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
   if (!tb_init(tb_null, tb_null)) return -1;
-  // if (!tb_init(tb_null,
-  //  tb_default_allocator((tb_byte_t*)malloc(300 * 1024 * 1024),
-  // 300 * 1024 * 1024)))
-  // return -1;
 
   // read n from command line
   tb_int_t n = 1024 * 1024;
@@ -173,8 +163,8 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
     data[i][3] = 1.0f;
   }
 
-  // peek 10 points
-  for (tb_size_t i = 0; i < 10; i++) {
+  // peek 32 points
+  for (tb_size_t i = 0; i < 32; i++) {
     printf("data[%lu] = (%f, %f, %f)\n", i, data[i][0], data[i][1], data[i][2]);
   }
 
@@ -182,14 +172,14 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
   //
   convert_xyz_to_morton_code(data, morton_keys, n, min_coord, range);
 
-  // peek 10 morton
-  for (tb_size_t i = 0; i < 10; i++) {
-    printf("morton_keys[%lu] = %u\n", i, morton_keys[i]);
-  }
-
   // step 2: sort morton code
   //
   qsort(morton_keys, n, sizeof(tb_uint32_t), compare_uint32_t);
+
+  // peek 32 morton
+  for (tb_size_t i = 0; i < 32; i++) {
+    printf("morton_keys[%lu] = %u\n", i, morton_keys[i]);
+  }
 
   // step 3: remove consecutive duplicates
   const tb_size_t n_unique_keys = remove_consecutive_duplicates(morton_keys, n);
@@ -202,11 +192,9 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
   tb_assert_and_check_return_val(tree, EXIT_FAILURE);
 
   create_radix_tree(tree, morton_keys, n_unique_keys, min_coord, max_coord);
-
-  // init_radix_tree(&tree, morton_keys, n_unique_keys, min_coord, max_coord);
-
   build_radix_tree(tree);
 
+  // peek 32 nodes
   for (int i = 0; i < 32; ++i) {
     printf(
         "idx = %d, code = %u, prefixN = %d, left = %d, parent = %d, "
@@ -220,7 +208,49 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
         tree->d_tree.hasLeafRight[i]);
   }
 
-  // free_radix_tree(&tree);
+  // allocate temporary memory for octree
+
+  tb_int_t* edge_count = tb_nalloc_type(tree->n_nodes, tb_int_t);
+  tb_assert_and_check_return_val(edge_count, EXIT_FAILURE);
+
+  // count edges
+  count_edges(
+      tree->d_tree.prefixN, tree->d_tree.parent, edge_count, tree->n_nodes);
+
+  // peek 32 edges
+  for (int i = 0; i < 32; ++i) {
+    printf("edge_count[%d] = %d\n", i, edge_count[i]);
+  }
+
+  // compute the prefix sum
+  // allocate 1 extra element for the last element
+  tb_int_t* edge_count_prefix_sum = tb_nalloc_type(tree->n_nodes + 1, tb_int_t);
+  tb_assert_and_check_return_val(edge_count_prefix_sum, EXIT_FAILURE);
+
+  // print how much temporary memory is used
+  total_memory = 0;
+  total_memory += tree->n_nodes * sizeof(tb_int_t);
+  total_memory += tree->n_nodes * sizeof(tb_int_t);
+  printf("Total memory used for temporary memory: %f MB\n",
+         (float)total_memory / 1024 / 1024);
+
+  tb_int_t sum = 0;
+  // allocate 1 extra element for the last element
+  for (tb_int_t i = 0; i < tree->n_nodes + 1; ++i) {
+    edge_count_prefix_sum[i] = sum;
+    sum += edge_count[i];
+  }
+
+  // peek 32 prefix sum
+  for (int i = 0; i < 32; ++i) {
+    printf("edge_count_prefix_sum[%d] = %d\n", i, edge_count_prefix_sum[i]);
+  }
+
+  // free temporary memory
+  tb_free(edge_count);
+  tb_free(edge_count_prefix_sum);
+
+  // free memory
   destroy_radix_tree(tree);
   tb_free(tree);
   tb_free(data);

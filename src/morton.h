@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#define MORTON_BITS 31
+
 typedef uint32_t morton_t;
 typedef uint16_t coord_t;
 

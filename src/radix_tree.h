@@ -1,5 +1,5 @@
-#ifndef BRT_H
-#define BRT_H
+#ifndef RADIX_TREE_H
+#define RADIX_TREE_H
 
 #include <tbox/tbox.h>
 
@@ -59,4 +59,4 @@ tb_int_t log2_ceil_u32(tb_uint32_t x);
 
 int_fast8_t delta_u32(tb_uint32_t a, tb_uint32_t b);
 
-#endif  // BRT_H
+#endif  // RADIX_TREE_H
