@@ -104,8 +104,8 @@ void print_bits(const uint32_t x) {
 }
 
 tb_int_t extract_sub_index(const morton_t code, const tb_int_t level) {
-  const tb_int_t bit_position = level * 3; // 30 - 
-  return (code >> bit_position) & 0x07;  // 0b111
+  const tb_int_t bit_position = level * 3;  // 30 -
+  return (code >> bit_position) & 0x07;     // 0b111
 }
 
 void print_octree_path(uint32_t x) {
