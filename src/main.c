@@ -31,9 +31,9 @@ static tb_size_t remove_consecutive_duplicates(tb_uint32_t* array,
 }
 
 // https://en.cppreference.com/w/cpp/algorithm/unique
-static tb_size_t unique(tb_uint32_t* array,
-                        tb_ptrdiff_t first,
-                        tb_ptrdiff_t last) {
+static tb_size_t std_unique(tb_uint32_t* array,
+                            tb_ptrdiff_t first,
+                            const tb_ptrdiff_t last) {
   if (first == last) return last;
 
   tb_ptrdiff_t result = first;
@@ -51,8 +51,8 @@ static void create_radix_tree(radix_tree_t* tree,
                               const tb_size_t n_unique_keys,
                               const tb_float_t min_coord,
                               const tb_float_t max_coord) {
-  tree->n_pts = n_unique_keys;
-  tree->n_nodes = n_unique_keys - 1;
+  tree->n_pts = (tb_int_t)n_unique_keys;
+  tree->n_nodes = (tb_int_t)n_unique_keys - 1;
   tree->min_coord = min_coord;
   tree->max_coord = max_coord;
   tree->d_tree.morton_codes = morton_keys;
@@ -78,10 +78,10 @@ static void destroy_radix_tree(const radix_tree_t* tree) {
 }
 
 // https://en.cppreference.com/w/cpp/algorithm/partial_sum#Version_1
-static tb_int_t* partial_sum(const tb_int_t* data,
-                             tb_ptrdiff_t first,
-                             tb_ptrdiff_t last,
-                             tb_int_t* d_first) {
+static tb_int_t* std_partial_sum(const tb_int_t* data,
+                                 tb_ptrdiff_t first,
+                                 const tb_ptrdiff_t last,
+                                 tb_int_t* d_first) {
   if (first == last) return d_first;
   tb_int_t sum = data[first];
   *d_first = sum;
@@ -221,7 +221,7 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
   //   sum += edge_count[i];
   // }
 
-  partial_sum(edge_count, 0, tree->n_nodes, edge_count_prefix_sum + 1);
+  std_partial_sum(edge_count, 0, tree->n_nodes, edge_count_prefix_sum + 1);
   edge_count_prefix_sum[0] = 0;
 
   // peek 32 prefix sum
