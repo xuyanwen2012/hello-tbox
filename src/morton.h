@@ -1,12 +1,13 @@
-#pragma once
+#ifndef MORTON_H
+#define MORTON_H
 
 #include <stdint.h>
 
-typedef uint32_t morton;
-typedef uint16_t coord;
+typedef uint32_t morton_t;
+typedef uint16_t coord_t;
 
-static morton morton3D_SplitBy3bits(const coord a) {
-  morton x = ((morton)a) & 0x000003ff;
+static morton_t morton3D_SplitBy3bits(const coord_t a) {
+  morton_t x = ((morton_t)a) & 0x000003ff;
   x = (x | x << 16) & 0x30000ff;
   x = (x | x << 8) & 0x0300f00f;
   x = (x | x << 4) & 0x30c30c3;
@@ -14,7 +15,11 @@ static morton morton3D_SplitBy3bits(const coord a) {
   return x;
 };
 
-static morton m3D_e_magicbits(const coord x, const coord y, const coord z) {
+static morton_t m3D_e_magicbits(const coord_t x,
+                                const coord_t y,
+                                const coord_t z) {
   return morton3D_SplitBy3bits(x) | (morton3D_SplitBy3bits(y) << 1) |
          (morton3D_SplitBy3bits(z) << 2);
 }
+
+#endif  // MORTON_H
