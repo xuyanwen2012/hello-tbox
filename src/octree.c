@@ -2,6 +2,7 @@
 
 #include "cglm/vec4.h"
 #include "morton.h"
+#include "tbox/prefix/trace.h"
 
 // basically, turn on the bit at the specific 'my_child_idx', and save the
 // child's node id to the children array
@@ -57,19 +58,22 @@ void make_oct_nodes(oct_node_t* oct_nodes,
 
   // the root doesn't represent level 0 of the "entire" octree
   for (tb_int_t i = 1; i < N; ++i) {
-    tb_trace_i("i: %d", i);
+    // tb_trace_i("i: %d", i);
 
-    // tb_int_t error_array[11] = {77118,
-    //                             77119,
-    //                             230604,
-    //                             230605,
-    //                             307134,
-    //                             307135,
-    //                             307137,
-    //                             307138,
-    //                             307139,
-    //                             307143,
-    //                             307144};
+    // tb_int_t error_array[11] = {
+    //     77118,
+    //     77119,
+    //     230604,
+    //     230605,
+    //     307134,
+    //     307135,
+    //     307137,
+    //     307138,
+    //     307139,
+    //     307143,
+    //     307144,
+    //     307154,
+    // };
     // // skip all i in error_array
     // tb_int_t error = 0;
     // for (tb_int_t j = 0; j < 11; ++j) {
@@ -109,26 +113,34 @@ void make_oct_nodes(oct_node_t* oct_nodes,
     if (n_new_nodes > 0) {
       tb_int_t rt_parent = rt_parents[i];
 
-      if (i == 77118) {
-        // print all information of this node
-        printf("i: %d\n", i);
-        printf("rt_prefixN[i]: %d\n", rt_prefixN[i]);
-        printf("rt_node_counts[i]: %d\n", rt_node_counts[i]);
-        printf("rt_parents[i]: %d\n", rt_parents[i]);
-        printf("node_offsets[i]: %d\n", node_offsets[i]);
-        printf("codes[i]: %d\n", codes[i]);
-        printf("oct_idx: %d\n", oct_idx);
-        // print rt_node_counts[rt_parent]
-        printf("rt_node_counts[rt_parent]: %d\n", rt_node_counts[rt_parent]);
-      }
+      // if (i == 77118) {
+      //   // print all information of this node
+      //   printf("i: %d\n", i);
+      //   printf("rt_prefixN[i]: %d\n", rt_prefixN[i]);
+      //   printf("rt_node_counts[i]: %d\n", rt_node_counts[i]);
+      //   printf("rt_parents[i]: %d\n", rt_parents[i]);
+      //   printf("node_offsets[i]: %d\n", node_offsets[i]);
+      //   printf("codes[i]: %d\n", codes[i]);
+      //   printf("oct_idx: %d\n", oct_idx);
+      //   // print rt_node_counts[rt_parent]
+      //   printf("rt_node_counts[rt_parent]: %d\n", rt_node_counts[rt_parent]);
+      // }
 
+      // Todo: temp fix
+      int counter = 0;
       while (rt_node_counts[rt_parent] == 0) {
         rt_parent = rt_parents[rt_parent];
+
+        ++counter;
+        if (counter > 22) {  // 64 / 3
+          tb_trace_w("counter > 22");
+          break;
+        }
       }
 
-      if (i == 77118) {
-        printf("-------------------: %d\n", rt_parent);
-      }
+      // if (i == 77118) {
+      // printf("-------------------: %d\n", rt_parent);
+      // }
 
       const tb_int_t oct_parent = node_offsets[rt_parent];
       const tb_int_t top_level = rt_prefixN[i] / 3 - n_new_nodes + 1;

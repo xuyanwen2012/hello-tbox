@@ -55,7 +55,7 @@ void convert_xyz_to_morton_code(const vec4* data,
                                 const tb_size_t n,
                                 const tb_float_t min_coord,
                                 const tb_float_t range) {
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
   for (tb_int_t i = 0; i < n; i++) {
     morton_keys[i] = single_point_to_code_v2(
         data[i][0], data[i][1], data[i][2], min_coord, range);
