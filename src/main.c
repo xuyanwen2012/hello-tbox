@@ -160,9 +160,12 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
   const tb_float_t range = max_coord - min_coord;
 
   for (tb_int_t i = 0; i < n; i++) {
-    data[i][0] = (tb_float_t)tb_rand() / RAND_MAX * range + min_coord;
-    data[i][1] = (tb_float_t)tb_rand() / RAND_MAX * range + min_coord;
-    data[i][2] = (tb_float_t)tb_rand() / RAND_MAX * range + min_coord;
+    data[i][0] =
+        (tb_float_t)tb_rand() / (tb_float_t)RAND_MAX * range + min_coord;
+    data[i][1] =
+        (tb_float_t)tb_rand() / (tb_float_t)RAND_MAX * range + min_coord;
+    data[i][2] =
+        (tb_float_t)tb_rand() / (tb_float_t)RAND_MAX * range + min_coord;
     data[i][3] = 1.0f;
   }
 
@@ -286,14 +289,14 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
                  tree_range,
                  tree->n_nodes);
 
-  // peek 32 octree nodes
-  for (tb_int_t i = 0; i < 32; ++i) {
-    printf("octree_nodes[%d].corner = (%f, %f, %f)\n",
-           i,
-           octree_nodes[i].corner[0],
-           octree_nodes[i].corner[1],
-           octree_nodes[i].corner[2]);
-  }
+  // // peek 32 octree nodes
+  // for (tb_int_t i = 0; i < 32; ++i) {
+  //   printf("octree_nodes[%d].corner = (%f, %f, %f)\n",
+  //          i,
+  //          octree_nodes[i].corner[0],
+  //          octree_nodes[i].corner[1],
+  //          octree_nodes[i].corner[2]);
+  // }
 
   // free temporary memory
   tb_free(edge_count);
