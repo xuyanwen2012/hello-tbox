@@ -18,3 +18,4 @@ if is_plat("windows") then
 end
 
 includes("src")
+includes("benchmark")

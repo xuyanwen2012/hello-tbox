@@ -5,6 +5,10 @@
 
 #include "cglm/types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Thus the maximum depth of the octree is 10 for 32-bit morton code.
 // for 32-bit morton, each 3-bit is used to encode one coordinate.
 // we can only use 10 chunk of 3-bits, so 2 bits are wasted.
@@ -68,5 +72,9 @@ void convert_xyz_to_morton_code(const vec4* data,
                                 tb_size_t n,
                                 tb_float_t min_coord,
                                 tb_float_t range);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // MORTON_H

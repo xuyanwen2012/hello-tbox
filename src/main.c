@@ -191,6 +191,18 @@ tb_int_t main(const tb_int_t argc, tb_char_t** argv) {
     putchar('\n');
   }
 
+  // Dump sorted morton code to binary file, so I can mmap it later
+  FILE* fp = fopen("morton.bin", "wb");
+
+  if (fp == NULL) {
+    tb_trace_e("Failed to open file");
+    return EXIT_FAILURE;
+  }
+
+  fwrite(morton_keys, sizeof(tb_uint32_t), n, fp);
+
+  fclose(fp);
+
   // step 3: remove consecutive duplicates
   const tb_size_t n_unique_keys = remove_consecutive_duplicates(morton_keys, n);
 
